@@ -215,6 +215,18 @@ button:focus-visible {
     width: min(100%, 1040px);
 }
 
+.profile-card h2 {
+    margin: 0 0 16px;
+    font-size: 1.05rem;
+}
+
+.profile-card hr {
+    width: 100%;
+    margin: 28px 0;
+    border: 0;
+    border-top: 1px solid #edf0f5;
+}
+
 .admin-table-wrap {
     overflow-x: auto;
     margin: 0 -12px;

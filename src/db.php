@@ -9,6 +9,10 @@ function db(): PDO
         return $connection;
     }
 
+    if (DB_USER === '' || (APP_ENV !== 'development' && (DB_USER === 'root' || DB_PASS === ''))) {
+        throw new RuntimeException('Secure database credentials are not configured.');
+    }
+
     $dsn = sprintf(
         'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
         DB_HOST,

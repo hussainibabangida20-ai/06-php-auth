@@ -14,6 +14,9 @@ $navbarUser = current_user();
     <a class="site-brand" href="<?= e($appBase . '/dashboard.php') ?>">SWD Auth</a>
     <nav aria-label="Main navigation">
         <a href="<?= e($appBase . '/dashboard.php') ?>">Dashboard</a>
+        <?php if ($navbarUser !== null): ?>
+            <a href="<?= e($appBase . '/profile.php') ?>">Profile</a>
+        <?php endif; ?>
         <?php if ($navbarUser !== null && $navbarUser['role'] === 'admin'): ?>
             <a href="<?= e($appBase . '/admin/users.php') ?>">Admin</a>
         <?php endif; ?>

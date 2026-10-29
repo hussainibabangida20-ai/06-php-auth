@@ -29,6 +29,7 @@ $createdAt = (new DateTimeImmutable((string) $user['created_at']))->format('M j,
     <link rel="stylesheet" href="assets/auth.css">
 </head>
 <body>
+<?php require __DIR__ . '/src/views/navbar.php'; ?>
 <main class="auth-page">
     <section class="auth-card" aria-labelledby="dashboard-title">
         <?php if (is_string($success) && $success !== ''): ?>

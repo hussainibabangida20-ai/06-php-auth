@@ -67,8 +67,80 @@ function require_role(string $role): void
     $user = current_user();
     if ($user === null || $user['role'] !== $role) {
         http_response_code(403);
-        exit('You do not have permission to access this page.');
+        $scriptDirectory = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+        $isAdminDirectory = basename($scriptDirectory) === 'admin';
+        $appBase = $isAdminDirectory ? dirname($scriptDirectory) : $scriptDirectory;
+        if ($appBase === '.' || $appBase === '/') {
+            $appBase = '';
+        }
+        $dashboardUrl = $appBase . '/dashboard.php';
+        $loginUrl = $appBase . '/login.php';
+        ?>
+        <!doctype html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Access denied</title>
+            <link rel="stylesheet" href="<?= e(($isAdminDirectory ? '../' : '') . 'assets/auth.css') ?>">
+        </head>
+        <body>
+        <main class="auth-page">
+            <section class="auth-card" aria-labelledby="forbidden-title">
+                <div class="auth-heading">
+                    <p class="eyebrow">Access denied</p>
+                    <h1 id="forbidden-title">You can’t access this page</h1>
+                    <p>Your account doesn’t have permission to view this area.</p>
+                </div>
+                <p class="auth-footer">
+                    <a href="<?= e($user === null ? $loginUrl : $dashboardUrl) ?>">
+                        <?= $user === null ? 'Sign in' : 'Return to your dashboard' ?>
+                    </a>
+                </p>
+            </section>
+        </main>
+        </body>
+        </html>
+        <?php
+        exit;
     }
+}
+
+function login_attempt_lockout_seconds(string $email, string $ip): int
+{
+    $statement = db()->prepare(
+        'SELECT GREATEST('
+        . 'COALESCE(TIMESTAMPDIFF(SECOND, CURRENT_TIMESTAMP, DATE_ADD(('
+        . 'SELECT attempted_at FROM login_attempts '
+        . 'WHERE email = :email AND attempted_at >= CURRENT_TIMESTAMP - INTERVAL 15 MINUTE '
+        . 'ORDER BY attempted_at DESC LIMIT 1 OFFSET 4'
+        . '), INTERVAL 15 MINUTE)), 0), '
+        . 'COALESCE(TIMESTAMPDIFF(SECOND, CURRENT_TIMESTAMP, DATE_ADD(('
+        . 'SELECT attempted_at FROM login_attempts '
+        . 'WHERE ip = :ip AND attempted_at >= CURRENT_TIMESTAMP - INTERVAL 15 MINUTE '
+        . 'ORDER BY attempted_at DESC LIMIT 1 OFFSET 4'
+        . '), INTERVAL 15 MINUTE)), 0)'
+        . ') AS remaining_seconds'
+    );
+    $statement->execute(['email' => $email, 'ip' => $ip]);
+
+    return max(0, (int) $statement->fetchColumn());
+}
+
+function record_failed_login(string $email, string $ip): void
+{
+    $statement = db()->prepare(
+        'INSERT INTO login_attempts (email, ip) VALUES (:email, :ip)'
+    );
+    $statement->execute(['email' => $email, 'ip' => $ip]);
+}
+
+function clear_login_attempts(string $email, string $ip): void
+{
+    $statement = db()->prepare(
+        'DELETE FROM login_attempts WHERE email = :email OR ip = :ip'
+    );
+    $statement->execute(['email' => $email, 'ip' => $ip]);
 }
 
 function safe_intended_url(?string $url): ?string

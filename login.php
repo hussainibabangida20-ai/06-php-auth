@@ -13,6 +13,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     $email = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
     $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+    $attemptEmail = strlen($email) <= 160 ? $email : hash('sha256', $email);
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if (!is_string($ip) || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+        throw new RuntimeException('The client IP address is unavailable or invalid.');
+    }
+
+    $lockoutSeconds = login_attempt_lockout_seconds($attemptEmail, $ip);
+    if ($lockoutSeconds > 0) {
+        $minutes = max(1, (int) ceil($lockoutSeconds / 60));
+        $_SESSION['_old'] = ['email' => $email];
+        flash('error', "Too many attempts, try again in {$minutes} minutes");
+        redirect('login.php');
+    }
+
     $user = false;
 
     if (filter_var($email, FILTER_VALIDATE_EMAIL) && strlen($email) <= 160) {
@@ -24,10 +38,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     if ($user === false || !password_verify($password, (string) $user['password_hash'])) {
+        record_failed_login($attemptEmail, $ip);
         $_SESSION['_old'] = ['email' => $email];
         flash('error', 'Invalid email or password');
         redirect('login.php');
     }
+
+    clear_login_attempts($attemptEmail, $ip);
 
     if (password_needs_rehash((string) $user['password_hash'], PASSWORD_DEFAULT)) {
         $newPasswordHash = password_hash($password, PASSWORD_DEFAULT);

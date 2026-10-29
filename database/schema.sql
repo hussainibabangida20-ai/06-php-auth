@@ -22,5 +22,6 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     ip VARCHAR(45) NOT NULL,
     attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY login_attempts_email_time (email, attempted_at)
+    KEY login_attempts_email_time (email, attempted_at),
+    KEY login_attempts_ip_time (ip, attempted_at)
 ) ENGINE=InnoDB;

@@ -3,9 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
-if (isset($_SESSION['user_id'])) {
-    redirect('dashboard.php');
-}
+require_guest();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify()) {
@@ -65,7 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $statement = db()->prepare(
-        'INSERT INTO users (name, email, password_hash) VALUES (:name, :email, :password_hash)'
+        'INSERT INTO users (name, email, password_hash, last_login_at) '
+        . 'VALUES (:name, :email, :password_hash, CURRENT_TIMESTAMP)'
     );
 
     try {
@@ -86,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int) db()->lastInsertId();
-    $_SESSION['user_name'] = $name;
-    $_SESSION['user_email'] = $email;
+    $_SESSION['role'] = 'user';
+    $_SESSION['_last_activity'] = time();
     unset($_SESSION['_old'], $_SESSION['_csrf_token']);
 
     flash('success', 'Your account has been created successfully.');

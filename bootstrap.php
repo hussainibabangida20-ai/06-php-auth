@@ -9,6 +9,7 @@ require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/helpers.php';
 require_once __DIR__ . '/src/csrf.php';
+require_once __DIR__ . '/src/auth.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     $https = isset($_SERVER['HTTPS'])
@@ -29,3 +30,5 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
     session_start();
 }
+
+auth_enforce_idle_timeout();
